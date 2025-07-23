@@ -1,3 +1,3 @@
 function myFunction() {
-  console.log('This is for Prod')
+  console.log('This is Staging')
 }
