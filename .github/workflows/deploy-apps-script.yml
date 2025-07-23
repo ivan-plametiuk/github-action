@@ -3,7 +3,7 @@ name: Deploy Google Apps Script
 on:
   push:
     branches:
-      - prod
+      - main
 
 jobs:
   deploy:
