@@ -1,28 +1,50 @@
-name: Deploy Google Apps Script
+name: Deploy Google Apps Script (Simple)
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    types: [closed]
+    branches:
+      - main
 
 jobs:
   deploy:
+    if: github.event_name == 'push' || (github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'staging')
+    
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: Install clasp
-        run: npm install -g @google/clasp
-
-      - name: Restore clasp credentials
-        run: echo "${{ secrets.CLASP_CREDENTIALS }}" > ~/.clasprc.json
-
-      - name: Deploy to Google Apps Script
-        run: clasp push
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install clasp
+      run: npm install -g @google/clasp
+      
+    - name: Setup Google Service Account
+      run: |
+        echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}' > /tmp/service-account.json
+        
+    - name: Setup clasp config
+      run: |
+        echo '{
+          "scriptId": "${{ secrets.APPS_SCRIPT_ID }}",
+          "rootDir": "./src"
+        }' > .clasp.json
+        
+    - name: Authenticate and Deploy
+      run: |
+        export GOOGLE_APPLICATION_CREDENTIALS=/tmp/service-account.json
+        clasp login --creds /tmp/service-account.json
+        clasp push --force
+        clasp version "Deployed from GitHub Actions - $(date)"
+        
+    - name: Cleanup
+      if: always()
+      run: rm -f /tmp/service-account.json
