@@ -1,67 +1,23 @@
-name: Debug Apps Script Deploy
+name: Deploy to Google Apps Script
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
-  debug:
+  deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        
-    - name: Install clasp
-      run: npm install -g @google/clasp
-      
-    - name: Debug - Check secrets
-      run: |
-        echo "Checking if secrets are available..."
-        echo "Service account key length: ${#GOOGLE_SERVICE_ACCOUNT_KEY}"
-        echo "Apps Script ID: $APPS_SCRIPT_ID"
-      env:
-        GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
-        APPS_SCRIPT_ID: ${{ secrets.APPS_SCRIPT_ID }}
-        
-    - name: Setup Google Service Account
-      run: |
-        echo "Setting up service account..."
-        echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}' > /tmp/service-account.json
-        echo "Service account file created"
-        ls -la /tmp/service-account.json
-        
-    - name: Test Authentication
-      run: |
-        echo "Testing authentication..."
-        export GOOGLE_APPLICATION_CREDENTIALS=/tmp/service-account.json
-        
-        # Try clasp login
-        clasp login --creds /tmp/service-account.json
-        
-        # Check who we are
-        clasp whoami
-        
-    - name: Setup clasp config
-      run: |
-        echo "Setting up .clasp.json..."
-        echo '{
-          "scriptId": "${{ secrets.APPS_SCRIPT_ID }}",
-          "rootDir": "./src"
-        }' > .clasp.json
-        cat .clasp.json
-        
-    - name: Test clasp status
-      run: |
-        echo "Testing clasp status..."
-        clasp status
-        
-    - name: Cleanup
-      if: always()
-      run: rm -f /tmp/service-account.json
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy with Clasp
+        uses: daikikatsuragawa/clasp-action@v1
+        with:
+          accessToken: ${{ secrets.ACCESS_TOKEN }}
+          refreshToken: ${{ secrets.REFRESH_TOKEN }}
+          clientId: ${{ secrets.CLIENT_ID }}
+          clientSecret: ${{ secrets.CLIENT_SECRET }}
+          scriptId: ${{ secrets.SCRIPT_ID }}
+          command: push
