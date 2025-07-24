@@ -1,18 +1,12 @@
-name: Deploy Google Apps Script (Simple)
+name: Debug Apps Script Deploy
 
 on:
   push:
     branches:
       - main
-  pull_request:
-    types: [closed]
-    branches:
-      - main
 
 jobs:
-  deploy:
-    if: github.event_name == 'push' || (github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'staging')
-    
+  debug:
     runs-on: ubuntu-latest
     
     steps:
@@ -27,23 +21,46 @@ jobs:
     - name: Install clasp
       run: npm install -g @google/clasp
       
+    - name: Debug - Check secrets
+      run: |
+        echo "Checking if secrets are available..."
+        echo "Service account key length: ${#GOOGLE_SERVICE_ACCOUNT_KEY}"
+        echo "Apps Script ID: $APPS_SCRIPT_ID"
+      env:
+        GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+        APPS_SCRIPT_ID: ${{ secrets.APPS_SCRIPT_ID }}
+        
     - name: Setup Google Service Account
       run: |
+        echo "Setting up service account..."
         echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}' > /tmp/service-account.json
+        echo "Service account file created"
+        ls -la /tmp/service-account.json
+        
+    - name: Test Authentication
+      run: |
+        echo "Testing authentication..."
+        export GOOGLE_APPLICATION_CREDENTIALS=/tmp/service-account.json
+        
+        # Try clasp login
+        clasp login --creds /tmp/service-account.json
+        
+        # Check who we are
+        clasp whoami
         
     - name: Setup clasp config
       run: |
+        echo "Setting up .clasp.json..."
         echo '{
           "scriptId": "${{ secrets.APPS_SCRIPT_ID }}",
           "rootDir": "./src"
         }' > .clasp.json
+        cat .clasp.json
         
-    - name: Authenticate and Deploy
+    - name: Test clasp status
       run: |
-        export GOOGLE_APPLICATION_CREDENTIALS=/tmp/service-account.json
-        clasp login --creds /tmp/service-account.json
-        clasp push --force
-        clasp version "Deployed from GitHub Actions - $(date)"
+        echo "Testing clasp status..."
+        clasp status
         
     - name: Cleanup
       if: always()
