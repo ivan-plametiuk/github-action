@@ -12,12 +12,38 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy with Clasp
-        uses: daikikatsuragawa/clasp-action@v1
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          accessToken: ${{ secrets.ACCESS_TOKEN }}
-          refreshToken: ${{ secrets.REFRESH_TOKEN }}
-          clientId: ${{ secrets.CLIENT_ID }}
-          clientSecret: ${{ secrets.CLIENT_SECRET }}
-          scriptId: ${{ secrets.SCRIPT_ID }}
-          command: push
+          node-version: '18'
+
+      - name: Install Clasp
+        run: npm install -g @google/clasp
+
+      - name: Configure Clasp auth
+        run: |
+          echo '{
+            "token": {
+              "access_token": "${{ secrets.ACCESS_TOKEN }}",
+              "refresh_token": "${{ secrets.REFRESH_TOKEN }}",
+              "scope": "https://www.googleapis.com/auth/script.projects https://www.googleapis.com/auth/script.deployments",
+              "token_type": "Bearer",
+              "expiry_date": 9999999999999
+            },
+            "oauth2ClientSettings": {
+              "clientId": "${{ secrets.CLIENT_ID }}",
+              "clientSecret": "${{ secrets.CLIENT_SECRET }}",
+              "redirectUri": "https://developers.google.com/oauthplayground"
+            },
+            "isLocalCreds": false
+          }' > ~/.clasprc.json
+
+      - name: Write clasp config
+        run: |
+          echo '{
+            "scriptId": "${{ secrets.SCRIPT_ID }}",
+            "rootDir": "./"
+          }' > .clasp.json
+
+      - name: Push to Google Apps Script
+        run: clasp push
