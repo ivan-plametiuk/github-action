@@ -1,3 +1,3 @@
 function myFunction() {
-  console.log('This is COMET Testing')
+  console.log('This is github action')
 }
