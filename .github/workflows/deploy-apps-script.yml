@@ -17,14 +17,30 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
       - name: Install Clasp
         run: npm install -g @google/clasp
+
+      - name: Refresh access token using refresh token
+        id: refresh_token
+        run: |
+          response=$(curl -s -X POST https://oauth2.googleapis.com/token \
+            -d client_id="${{ secrets.CLIENT_ID }}" \
+            -d client_secret="${{ secrets.CLIENT_SECRET }}" \
+            -d refresh_token="${{ secrets.REFRESH_TOKEN }}" \
+            -d grant_type=refresh_token)
+
+          echo "$response"
+          access_token=$(echo "$response" | jq -r '.access_token')
+          echo "access_token=$access_token" >> $GITHUB_ENV
 
       - name: Configure Clasp auth
         run: |
           echo '{
             "token": {
-              "access_token": "${{ secrets.ACCESS_TOKEN }}",
+              "access_token": "'"$access_token"'",
               "refresh_token": "${{ secrets.REFRESH_TOKEN }}",
               "scope": "https://www.googleapis.com/auth/script.projects https://www.googleapis.com/auth/script.deployments",
               "token_type": "Bearer",
